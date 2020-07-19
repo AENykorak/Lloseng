@@ -79,20 +79,13 @@ public class ServerConsole implements ChatIF
 	  	case "#quit":
 	  		try {
 	  			server.close();
+	  			System.exit(1);
 	  		}catch(IOException e) {}
 	  		break;
 	  	case "#stop":
-	  		server.stopListening();
-	  		Thread[] clientThreadList = server.getClientConnections();
-	        for (int i=0; i<clientThreadList.length; i++)
-	        {
-	           try
-	           {
-	             ((ConnectionToClient)clientThreadList[i]).close();
-	           }
-	           // Ignore all exceptions when closing clients.
-	           catch(Exception ex) {}
-	        }
+	  		try {
+	  			server.close();
+	  		}catch(IOException e) {}	  		
 	  		break;
 	  	case "#close":
 	  		server.stopListening();
@@ -100,7 +93,8 @@ public class ServerConsole implements ChatIF
 	  	case "#setport":
 	  		if(!server.isListening()) {
 	  			try{
-	  				server.setPort(Integer.parseInt(args[0]));
+	  				server.setPort(Integer.parseInt(args[1]));
+	  				System.out.println("port set to: "+server.getPort());
 	  			}
 	  			catch(NumberFormatException e) {}
 	  		}

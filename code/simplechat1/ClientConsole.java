@@ -117,10 +117,11 @@ public class ClientConsole implements ChatIF
 	  	case "#login":
 	  		try{
 	  			client.openConnection();
+	  			
 	  		}catch(IOException e) {}
 	  		break;
 	  	case "#gethost":
-	  		System.out.println("Port: "+client.getHost());
+	  		System.out.println("Host: "+client.getHost());
 	  		break;
 	  	case "#getport":
 	  		System.out.println("Port: "+client.getPort());
@@ -136,7 +137,7 @@ public class ClientConsole implements ChatIF
    */
   public void display(String message) 
   {
-    System.out.println("> " + message);
+    System.out.println(message);
   }
 
   
@@ -168,7 +169,7 @@ public class ClientConsole implements ChatIF
     		}
     		catch(NumberFormatException|IndexOutOfBoundsException e){
  				if(e instanceof NumberFormatException)
- 					host.replace("", args[i]);
+ 					host.replace("", args[i].toString());
  				if(e instanceof IndexOutOfBoundsException)
  					port=DEFAULT_PORT;
     		}

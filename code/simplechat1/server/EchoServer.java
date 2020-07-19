@@ -57,12 +57,13 @@ public class EchoServer extends AbstractServer
    */
   protected void handleMessageFromClient(Object msg, ConnectionToClient client)
   {
-	System.out.println("A new client is attempting to connect to the server");
-	System.out.println("Message received: " + msg + " from " + client.getInfo("LoginID"));
+	
     if(msg.toString().charAt(0)=='#') {
     	if(client.getInfo("LoginID")==null) {
+    		System.out.println("A new client is attempting to connect to the server");
+    		System.out.println("Message received: " + msg + " from " + client.getInfo("LoginID"));
     		String type = "LoginID";
-    		client.setInfo(type, msg.toString());
+    		client.setInfo(type, msg.toString().split(" ")[1]);
     	}
     	else {
     		try {
@@ -72,8 +73,8 @@ public class EchoServer extends AbstractServer
     }
     else
     	if(client.getInfo("LoginID")!=null) {
-    		this.sendToAllClients(client.getInfo("LoginID").toString()+": "+msg);
-    		System.out.println(client.getInfo("LoginID").toString()+": "+msg);
+    		this.sendToAllClients(client.getInfo("LoginID").toString()+" > "+msg);
+    		System.out.println("Message received: " + msg + " from " + client.getInfo("LoginID"));
     	}
     	else {
     		try {
@@ -110,7 +111,7 @@ public class EchoServer extends AbstractServer
   }
   
   synchronized protected void clientDisconnected(ConnectionToClient client) {
-	  String msg = client.getInfo("LoginID")+": Disconnected";
+	  String msg = client.getInfo("LoginID")+" has Disconnected";
 	  System.out.println(msg);
 	  this.sendToAllClients(msg);
   }
