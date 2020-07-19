@@ -3,8 +3,9 @@
 // license found at www.lloseng.com 
 
 import java.io.*;
-import client.*;
+import server.*;
 import common.*;
+import ocsf.server.*;
 
 /**
  * This class constructs the UI for a chat client.  It implements the
@@ -16,7 +17,7 @@ import common.*;
  * @author Dr Robert Lagani&egrave;re
  * @version July 2000
  */
-public class ClientConsole implements ChatIF 
+public class ServerConsole implements ChatIF 
 {
   //Class variables *************************************************
   
@@ -30,32 +31,14 @@ public class ClientConsole implements ChatIF
   /**
    * The instance of the client that created this ConsoleChat.
    */
-  ChatClient client;
-  
-  String loginID;
+  static EchoServer server;
+
   
   //Constructors ****************************************************
 
-  /**
-   * Constructs an instance of the ClientConsole UI.
-   *
-   * @param host The host to connect to.
-   * @param port The port to connect on.
-   */
-  public ClientConsole(String loginID, String host, int port) 
+  public ServerConsole(int port) 
   {
-	this.loginID=loginID;
-    try 
-    {
-      client= new ChatClient(host, port, this);
-    } 
-    catch(IOException exception) 
-    {
-      System.out.println("Error: Can't setup connection!"
-                + " Terminating client.");
-      System.exit(1);
-    }
-    client.handleMessageFromClientUI("#login "+loginID);
+      server= new EchoServer(port, this);
   }
 
   
@@ -80,7 +63,7 @@ public class ClientConsole implements ChatIF
         	chatCommands(message.split(" "));
         }
         else {
-        	client.handleMessageFromClientUI(message);
+        	server.handleMessageFromServerUI(message);
         }
       } 
     } 
@@ -94,37 +77,43 @@ public class ClientConsole implements ChatIF
   protected void chatCommands(String[] args) {
 	  switch(args[0]) {
 	  	case "#quit":
-	  		try{
-	  			client.closeConnection();
-		  		client.quit();
-	  		}catch(Exception e) {}
-	  		break;
-	  	case "#logoff":
 	  		try {
-	  			client.closeConnection();
-	  		}catch(Exception e) {}
-	  		break;
-	  	case "#sethost":
-	  		if(!client.isConnected())
-	  			client.setHost(args[1]);
-	  		break;
-	  	case "#setport":
-	  		if(!client.isConnected()) {
-	  			try{
-	  				client.setPort(Integer.parseInt(args[1]));
-	  			}catch(NumberFormatException e){}
-	  		}
-	  		break;
-	  	case "#login":
-	  		try{
-	  			client.openConnection();
+	  			server.close();
 	  		}catch(IOException e) {}
 	  		break;
-	  	case "#gethost":
-	  		System.out.println("Port: "+client.getHost());
+	  	case "#stop":
+	  		server.stopListening();
+	  		Thread[] clientThreadList = server.getClientConnections();
+	        for (int i=0; i<clientThreadList.length; i++)
+	        {
+	           try
+	           {
+	             ((ConnectionToClient)clientThreadList[i]).close();
+	           }
+	           // Ignore all exceptions when closing clients.
+	           catch(Exception ex) {}
+	        }
+	  		break;
+	  	case "#close":
+	  		server.stopListening();
+	  		break;
+	  	case "#setport":
+	  		if(!server.isListening()) {
+	  			try{
+	  				server.setPort(Integer.parseInt(args[0]));
+	  			}
+	  			catch(NumberFormatException e) {}
+	  		}
+	  		break;
+	  	case "#start":
+	  		if(!server.isListening()) {
+	  			try{
+	  				server.listen();
+	  			}catch(IOException e) {}
+	  		}
 	  		break;
 	  	case "#getport":
-	  		System.out.println("Port: "+client.getPort());
+	  		System.out.println("Port: "+server.getPort());
 	  		break;
 	  }
   }
@@ -137,45 +126,25 @@ public class ClientConsole implements ChatIF
    */
   public void display(String message) 
   {
-    System.out.println("> " + message);
+    System.out.println(message);
   }
 
   
   //Class methods ***************************************************
   
-  /**
-   * This method is responsible for the creation of the Client UI.
-   *
-   * @param args[0] The host to connect to.
-   */
   public static void main(String[] args) 
   {
-    String host = "";
-    String logID = "";
     int port = 0;  //The port number
-    if(args.length==0) {
-    	System.out.println("No log in ID provided. Client terminated.");
-    	System.exit(1);
+	try {
+    	port=Integer.parseInt(args[0]);
     }
-    else if(args.length<2) {
-    	logID=args[0];
-    	host="localhost";
-    	port=DEFAULT_PORT;
+    catch(NumberFormatException|ArrayIndexOutOfBoundsException e){
+		port=DEFAULT_PORT;
     }
-    else{	
-    	for(int i = 1; i<args.length;i++) {
-    		try {
-    			port=Integer.parseInt(args[i]);
-    		}
-    		catch(NumberFormatException|IndexOutOfBoundsException e){
- 				if(e instanceof NumberFormatException)
- 					host.replace("", args[i]);
- 				if(e instanceof IndexOutOfBoundsException)
- 					port=DEFAULT_PORT;
-    		}
-    	}
-    }
-    ClientConsole chat= new ClientConsole(logID, host, port);
+    ServerConsole chat= new ServerConsole(port);
+    try{
+    	server.listen();
+    }catch(IOException e) {}
     chat.accept();  //Wait for console data
   }
 }

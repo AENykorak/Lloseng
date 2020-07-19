@@ -2,7 +2,14 @@
 // "Object Oriented Software Engineering" and is issued under the open-source
 // license found at www.lloseng.com 
 
+package server;
+
 import java.io.*;
+import common.*;
+
+//import com.lloseng.ocsf.server.ConnectionToClient;
+import ocsf.server.ConnectionToClient;
+
 import ocsf.server.*;
 
 /**
@@ -24,6 +31,8 @@ public class EchoServer extends AbstractServer
    */
   final public static int DEFAULT_PORT = 5555;
   
+  static ChatIF serverUI;
+  
   //Constructors ****************************************************
   
   /**
@@ -31,9 +40,10 @@ public class EchoServer extends AbstractServer
    *
    * @param port The port number to connect on.
    */
-  public EchoServer(int port) 
+  public EchoServer(int port, ChatIF serverUI) 
   {
     super(port);
+    this.serverUI=serverUI;
   }
 
   
@@ -45,12 +55,34 @@ public class EchoServer extends AbstractServer
    * @param msg The message received from the client.
    * @param client The connection from which the message originated.
    */
-  public void handleMessageFromClient
-    (Object msg, ConnectionToClient client)
+  protected void handleMessageFromClient(Object msg, ConnectionToClient client)
   {
     System.out.println("Message received: " + msg + " from " + client);
-    this.sendToAllClients(msg);
+    if(msg.toString().charAt(0)=='#') {
+    	if(client.getInfo("LoginID")==null) {
+    		String type = "LoginID";
+    		client.setInfo(type, msg.toString());
+    		System.out.println(client+"Login ID set to "+ client.getInfo("LoginID"));
+    	}
+    	else {
+    		try {
+    			client.sendToClient("Error. Login ID cannot be changed once created.");
+    		}catch(IOException e) {}
+    	}
+    }
+    else
+    	if(client.getInfo("LoginID")!=null) {
+    		this.sendToAllClients(client.getInfo("LoginID").toString()+": "+msg);
+    		System.out.println(client.getInfo("LoginID").toString()+": "+msg);
+    	}
+    	else {
+    		try {
+    			client.sendToClient("Error. Login ID cannot be changed once created.");
+    			client.close();
+    		}catch(IOException e) {}
+    	}
   }
+
     
   /**
    * This method overrides the one in the superclass.  Called
@@ -70,6 +102,41 @@ public class EchoServer extends AbstractServer
   {
     System.out.println
       ("Server has stopped listening for connections.");
+  }
+  
+  protected void clientConnected(ConnectionToClient client) {
+	  System.out.println(client.getName()+": Connected");
+	  sendToAllClients(client.getName()+" has connected.");
+  }
+  
+  synchronized protected void clientDisconnected(ConnectionToClient client) {
+	  String msg = client.getName()+": Disconnected";
+	  System.out.println(msg);
+	  this.sendToAllClients(msg);
+  }
+  
+  synchronized protected void clientException(ConnectionToClient client, Throwable exception) {
+	  String msg = client.getName()+": Forcefully Disconnected";
+	  System.out.println(msg);
+	  this.sendToAllClients(msg);  }
+  
+  public void sendToAllClients(Object msg)
+  {
+    Thread[] clientThreadList = getClientConnections();
+
+    for (int i=0; i<clientThreadList.length; i++)
+    {
+      try
+      {
+        ((ConnectionToClient)clientThreadList[i]).sendToClient(msg);
+      }
+      catch (Exception ex) {}
+    }
+  }
+  
+  public void handleMessageFromServerUI(String message) {
+	  System.out.println("SERVER MSG> "+message);
+	  sendToAllClients("SERVER MSG> "+message);
   }
   
   //Class methods ***************************************************
@@ -94,7 +161,7 @@ public class EchoServer extends AbstractServer
       port = DEFAULT_PORT; //Set port to 5555
     }
 	
-    EchoServer sv = new EchoServer(port);
+    EchoServer sv = new EchoServer(port, serverUI);
     
     try 
     {
@@ -106,4 +173,5 @@ public class EchoServer extends AbstractServer
     }
   }
 }
+
 //End of EchoServer class
