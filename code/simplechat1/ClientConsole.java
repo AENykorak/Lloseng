@@ -48,14 +48,13 @@ public class ClientConsole implements ChatIF
     try 
     {
       client= new ChatClient(host, port, this);
+      client.handleMessageFromClientUI("#login "+loginID);
     } 
     catch(IOException exception) 
     {
-      System.out.println("Error: Can't setup connection!"
-                + " Terminating client.");
-      System.exit(1);
+      System.out.println("Cannot open connection."
+                + " Awaiting command.");
     }
-    client.handleMessageFromClientUI("#login "+loginID);
   }
 
   
@@ -154,7 +153,7 @@ public class ClientConsole implements ChatIF
     String logID = "";
     int port = 0;  //The port number
     if(args.length==0) {
-    	System.out.println("No log in ID provided. Client terminated.");
+    	System.out.println("ERROR - No login ID specified. Connection Aborted.");
     	System.exit(1);
     }
     else if(args.length<2) {
